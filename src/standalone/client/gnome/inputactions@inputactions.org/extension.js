@@ -90,8 +90,11 @@ export default class MyExtension extends Extension {
     disable() {
         Gio.DBus.session.signal_unsubscribe(this._dbusDataRequestedSignalSubscription);
         for (let [key, value] of this._connections) {
-            key.disconnect(value);
+            for (let connection of value) {
+                key.disconnect(connection);
+            }
         }
+        this._connections.clear();
         GLib.Source.remove(this._pointerPositionTimerId);
     }
 
@@ -142,8 +145,8 @@ export default class MyExtension extends Extension {
         let data = ["pointer_position_global", "pointer_position_screen_percentage", "window_under_pointer_geometry"];
 
         if (this._windowUnderPointer != window) {
-            this._windowUnderPointer = window;
             this._disconnect(this._windowUnderPointer);
+            this._windowUnderPointer = window;
             if (window) {
                 this._connect(window, "notify::fullscreen", () => this._sendData(["active_window_fullscreen", "window_under_pointer_fullscreen"]));
                 this._connect(window, "notify::maximized-horizontally", () => this._sendData(["active_window_maximized", "window_under_pointer_maximized"]));
